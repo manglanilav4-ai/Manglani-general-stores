@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Manglani General Store</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins}
+
+body{background:#f5f7fa;color:#333}
+
+header{
+background:#2c7be5;
+color:#fff;
+padding:15px;
+text-align:center;
+}
+
+header h1{font-size:22px}
+header p{font-size:13px}
+
+.container{padding:15px}
+
+.filters{
+display:flex;
+gap:10px;
+overflow:auto;
+margin-bottom:15px;
+}
+
+.filters button{
+padding:8px 12px;
+border:none;
+background:#ddd;
+border-radius:20px;
+cursor:pointer;
+}
+
+.filters button.active{background:#2c7be5;color:#fff}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:12px;
+}
+
+.card{
+background:#fff;
+padding:10px;
+border-radius:10px;
+box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.card img{
+width:100%;
+height:120px;
+object-fit:cover;
+border-radius:8px;
+}
+
+.card h3{font-size:14px;margin:5px 0}
+.price{color:#2c7be5;font-weight:600}
+
+.btn{
+margin-top:5px;
+width:100%;
+padding:6px;
+border:none;
+background:#2c7be5;
+color:#fff;
+border-radius:6px;
+cursor:pointer;
+}
+
+.cart-btn{
+position:fixed;
+bottom:20px;
+right:20px;
+background:#28a745;
+color:#fff;
+padding:12px;
+border-radius:50%;
+cursor:pointer;
+}
+
+.cart-box{
+position:fixed;
+bottom:0;
+left:0;
+width:100%;
+background:#fff;
+max-height:80%;
+overflow:auto;
+display:none;
+padding:15px;
+border-top-left-radius:15px;
+border-top-right-radius:15px;
+}
+
+.cart-item{
+display:flex;
+justify-content:space-between;
+margin-bottom:10px;
+}
+
+input,textarea{
+width:100%;
+padding:8px;
+margin:5px 0;
+border:1px solid #ccc;
+border-radius:5px;
+}
+
+.whatsapp{
+position:fixed;
+bottom:80px;
+right:20px;
+background:#25d366;
+color:#fff;
+padding:10px;
+border-radius:50%;
+text-decoration:none;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>Manglani General Store</h1>
+<p>The Complete Shop • Barhi (Katni)</p>
+</header>
+
+<div class="container">
+
+<div class="filters">
+<button onclick="filter('All')" class="active">All</button>
+<button onclick="filter('Groceries')">Groceries</button>
+<button onclick="filter('Dairy')">Dairy</button>
+<button onclick="filter('Snacks')">Snacks</button>
+<button onclick="filter('Beverages')">Beverages</button>
+</div>
+
+<div class="grid" id="products"></div>
+
+</div>
+
+<div class="cart-btn" onclick="toggleCart()">🛒 <span id="count">0</span></div>
+
+<a class="whatsapp" href="https://wa.me/919907546062">💬</a>
+
+<div class="cart-box" id="cartBox">
+<h3>Your Cart</h3>
+<div id="cartItems"></div>
+<h4>Total: ₹<span id="total">0</span></h4>
+
+<form action="https://formspree.io/f/mrejbrop" method="POST" onsubmit="return sendOrder()">
+
+<input type="text" placeholder="Name" required>
+<input type="tel" placeholder="Phone" required>
+<textarea placeholder="Address" required></textarea>
+<textarea placeholder="Instructions"></textarea>
+
+<input type="hidden" name="order" id="orderData">
+
+<button class="btn">Place Order</button>
+</form>
+
+</div>
+
+<script>
+
+let products=[
+{
+name:"Aashirvaad Atta (5kg)",
+price:280,
+cat:"Groceries",
+img:"https://i.ibb.co/mVG1dsYj/17777034790544190107798749411598.jpg",
+desc:"Premium whole wheat flour"
+},
+{
+name:"Amul Butter",
+price:280,
+cat:"Dairy",
+img:"https://i.ibb.co/placeholder",
+desc:"Fresh butter"
+},
+{
+name:"Maggi Noodles",
+price:14,
+cat:"Snacks",
+img:"https://i.ibb.co/placeholder",
+desc:"2 min noodles"
+},
+{
+name:"Milk Packet",
+price:55,
+cat:"Dairy",
+img:"https://i.ibb.co/placeholder",
+desc:"Fresh milk"
+},
+{
+name:"Pepsi 1L",
+price:60,
+cat:"Beverages",
+img:"https://i.ibb.co/placeholder",
+desc:"Cold drink"
+},
+{
+name:"Rice 5kg",
+price:300,
+cat:"Groceries",
+img:"https://i.ibb.co/placeholder",
+desc:"Premium rice"
+},
+{
+name:"Biscuit Pack",
+price:20,
+cat:"Snacks",
+img:"https://i.ibb.co/placeholder",
+desc:"Tasty biscuits"
+},
+{
+name:"Sugar 1kg",
+price:45,
+cat:"Groceries",
+img:"https://i.ibb.co/placeholder",
+desc:"Pure sugar"
+}
+];
+
+let cart=[];
+
+function display(list){
+let html="";
+list.forEach((p,i)=>{
+html+=`
+<div class="card">
+<img src="${p.img}" loading="lazy" alt="${p.name}">
+<h3>${p.name}</h3>
+<div class="price">₹${p.price}</div>
+<button class="btn" onclick="add(${i})">Add to Cart</button>
+</div>`;
+});
+document.getElementById("products").innerHTML=html;
+}
+
+function filter(cat){
+document.querySelectorAll(".filters button").forEach(b=>b.classList.remove("active"));
+event.target.classList.add("active");
+
+if(cat==="All") display(products);
+else display(products.filter(p=>p.cat===cat));
+}
+
+function add(i){
+let item=products[i];
+let found=cart.find(c=>c.name===item.name);
+
+if(found) found.qty++;
+else cart.push({...item,qty:1});
+
+update();
+}
+
+function update(){
+document.getElementById("count").innerText=cart.length;
+
+let html="";
+let total=0;
+
+cart.forEach((c,i)=>{
+total+=c.price*c.qty;
+html+=`
+<div class="cart-item">
+${c.name} x${c.qty} ₹${c.price*c.qty}
+<button onclick="remove(${i})">❌</button>
+</div>`;
+});
+
+document.getElementById("cartItems").innerHTML=html;
+document.getElementById("total").innerText=total;
+}
+
+function remove(i){
+cart.splice(i,1);
+update();
+}
+
+function toggleCart(){
+let box=document.getElementById("cartBox");
+box.style.display=box.style.display==="block"?"none":"block";
+}
+
+function sendOrder(){
+let summary="";
+cart.forEach(c=>{
+summary+=`${c.name} x${c.qty} = ₹${c.price*c.qty}\n`;
+});
+
+summary+=`Total: ₹${document.getElementById("total").innerText}`;
+
+document.getElementById("orderData").value=summary;
+
+alert("Order placed! Manglani General Store will contact you on WhatsApp.");
+
+cart=[];
+update();
+
+return true;
+}
+
+display(products);
+
+</script>
+
+</body>
+</html>
