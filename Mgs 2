@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manglani General Store</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins}
+
+body{background:#f4f6f9;}
+
+header{
+background:#0f766e;
+color:#fff;
+text-align:center;
+padding:15px;
+}
+
+header h1{font-size:22px;}
+header p{font-size:13px;}
+
+.filters{
+display:flex;
+gap:8px;
+overflow:auto;
+padding:10px;
+}
+
+.filters button{
+padding:6px 12px;
+border:none;
+border-radius:20px;
+background:#ddd;
+}
+
+.filters .active{
+background:#0f766e;
+color:#fff;
+}
+
+.products{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+padding:10px;
+}
+
+.card{
+background:#fff;
+border-radius:12px;
+padding:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.card img{
+width:100%;
+height:110px;
+object-fit:cover;
+border-radius:8px;
+}
+
+.card h4{font-size:14px;margin:5px 0;}
+.card p{font-size:12px;color:#555;}
+.price{font-weight:600;}
+
+.card button{
+width:100%;
+margin-top:5px;
+padding:6px;
+border:none;
+border-radius:6px;
+background:#0f766e;
+color:#fff;
+}
+
+.cart-btn{
+position:fixed;
+bottom:20px;
+right:20px;
+background:#ff5722;
+color:#fff;
+padding:14px;
+border-radius:50%;
+font-size:18px;
+}
+
+.cart-count{
+position:absolute;
+top:-5px;
+right:-5px;
+background:#000;
+color:#fff;
+padding:3px 6px;
+border-radius:50%;
+font-size:11px;
+}
+
+.cart{
+position:fixed;
+top:0;
+right:-100%;
+width:100%;
+height:100%;
+background:#fff;
+transition:.3s;
+overflow:auto;
+padding:15px;
+}
+
+.cart.active{right:0;}
+
+.cart-item{
+display:flex;
+justify-content:space-between;
+margin-bottom:10px;
+}
+
+.total{
+font-weight:bold;
+margin:10px 0;
+}
+
+form input, form textarea{
+width:100%;
+padding:8px;
+margin-bottom:10px;
+}
+
+form button{
+width:100%;
+padding:10px;
+background:#0f766e;
+color:#fff;
+border:none;
+}
+
+.whatsapp{
+position:fixed;
+bottom:20px;
+left:20px;
+background:#25D366;
+color:#fff;
+padding:12px;
+border-radius:50%;
+text-decoration:none;
+font-size:18px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>Manglani General Store</h1>
+<p>The complete shop</p>
+</header>
+
+<div class="filters">
+<button class="active" onclick="filterCat('All')">All</button>
+<button onclick="filterCat('Groceries')">Groceries</button>
+<button onclick="filterCat('Snacks')">Snacks</button>
+</div>
+
+<div class="products" id="products"></div>
+
+<div class="cart-btn" onclick="toggleCart()">🛒 <span id="count" class="cart-count">0</span></div>
+
+<div class="cart" id="cart">
+<h2>Your Cart</h2>
+<div id="cartItems"></div>
+<div class="total" id="total"></div>
+
+<form action="https://formspree.io/f/mrejbrop" method="POST" onsubmit="prepareOrder()">
+<input type="text" name="name" placeholder="Your Name" required>
+<input type="tel" name="phone" placeholder="Phone Number" required>
+<textarea name="address" placeholder="Delivery Address" required></textarea>
+<textarea name="notes" placeholder="Instructions"></textarea>
+
+<input type="hidden" name="order" id="orderData">
+
+<button type="submit">Place Order</button>
+</form>
+</div>
+
+<a class="whatsapp" href="https://wa.me/7879117042">💬</a>
+
+<script>
+let products=[
+{name:"Aashirvaad Atta 5kg",price:280,cat:"Groceries",img:"https://via.placeholder.com/300",desc:"Premium wheat flour"},
+{name:"Rice 1kg",price:60,cat:"Groceries",img:"https://via.placeholder.com/300",desc:"Fresh rice"},
+{name:"Sugar 1kg",price:45,cat:"Groceries",img:"https://via.placeholder.com/300",desc:"Refined sugar"},
+{name:"Salt",price:20,cat:"Groceries",img:"https://via.placeholder.com/300",desc:"Iodized salt"},
+{name:"Maggi",price:14,cat:"Snacks",img:"https://via.placeholder.com/300",desc:"Instant noodles"},
+{name:"Lays",price:20,cat:"Snacks",img:"https://via.placeholder.com/300",desc:"Crunchy chips"},
+{name:"Biscuits",price:30,cat:"Snacks",img:"https://via.placeholder.com/300",desc:"Tea biscuits"},
+{name:"Cold Drink",price:40,cat:"Snacks",img:"https://via.placeholder.com/300",desc:"Refreshing drink"}
+];
+
+let cart=JSON.parse(localStorage.getItem("cart"))||[];
+
+function render(p){
+let html="";
+p.forEach((item,i)=>{
+html+=`
+<div class="card">
+<img src="${item.img}" loading="lazy" alt="${item.name}">
+<h4>${item.name}</h4>
+<p>${item.desc}</p>
+<div class="price">₹${item.price}</div>
+<button onclick="add(${i})">Add to Cart</button>
+</div>`;
+});
+productsDiv.innerHTML=html;
+}
+
+function filterCat(cat){
+document.querySelectorAll(".filters button").forEach(b=>b.classList.remove("active"));
+event.target.classList.add("active");
+
+if(cat==="All") render(products);
+else render(products.filter(p=>p.cat===cat));
+}
+
+function add(i){
+let item=products[i];
+let f=cart.find(c=>c.name===item.name);
+if(f)f.qty++;
+else cart.push({...item,qty:1});
+update();
+}
+
+function update(){
+localStorage.setItem("cart",JSON.stringify(cart));
+count.innerText=cart.length;
+
+let html="",total=0;
+cart.forEach((c,i)=>{
+let sub=c.qty*c.price;
+total+=sub;
+html+=`
+<div class="cart-item">
+${c.name} x${c.qty} = ₹${sub}
+<div>
+<button onclick="chg(${i},-1)">-</button>
+<button onclick="chg(${i},1)">+</button>
+<button onclick="del(${i})">x</button>
+</div>
+</div>`;
+});
+
+cartItems.innerHTML=html;
+totalDiv.innerText="Total: ₹"+total;
+}
+
+function chg(i,d){
+cart[i].qty+=d;
+if(cart[i].qty<=0)cart.splice(i,1);
+update();
+}
+
+function del(i){
+cart.splice(i,1);
+update();
+}
+
+function toggleCart(){
+cartDiv.classList.toggle("active");
+}
+
+function prepareOrder(){
+let txt="",total=0;
+cart.forEach(c=>{
+let sub=c.qty*c.price;
+total+=sub;
+txt+=`${c.name} x${c.qty} = ₹${sub}\n`;
+});
+txt+=`\nTotal: ₹${total}`;
+orderData.value=txt;
+
+cart=[];
+localStorage.removeItem("cart");
+
+setTimeout(()=>{
+alert("Order placed! Manglani General Store will contact you on WhatsApp.");
+},500);
+}
+
+let productsDiv=document.getElementById("products");
+let cartItems=document.getElementById("cartItems");
+let totalDiv=document.getElementById("total");
+let count=document.getElementById("count");
+let cartDiv=document.getElementById("cart");
+let orderData=document.getElementById("orderData");
+
+render(products);
+update();
+</script>
+
+</body>
+</html>
